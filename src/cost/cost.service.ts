@@ -13,7 +13,7 @@ export class CostService {
   constructor(
     private readonly pgService: PgService,
     private readonly carService: CarService,
-    private readonly taxService: RateService,
+    private readonly rateService: RateService,
     private readonly discountService: DiscountService,
     private readonly validationService: ValidationService,
     private readonly calculationService: CalculationService,
@@ -25,12 +25,10 @@ export class CostService {
     if (isValid !== strCon.success.start) {
       return isValid;
     }
-    const totalHours = this.calculationService.getHours(
-      dto.date_start,
-      dto.date_end,
+    const days = this.calculationService.getDays(dto.date_start, dto.date_end);
+    const tax: getTaxRes = await this.rateService.getRateByKm(
+      dto.mileagePerDay,
     );
-    const days = this.calculationService.getDays(totalHours);
-    const tax: getTaxRes = await this.taxService.getRateByKm(dto.mileagePerDay);
     if (tax) summ = days * tax.cost;
     const discount: getDiscountRes = await this.discountService.getDiscount(
       days,

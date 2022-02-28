@@ -6,24 +6,34 @@ import { ConfigService } from '@nestjs/config';
 import { costCalcDTO } from '../cost/types';
 import { getTaxRes, sessionCloseDTO, sessionStartDTO } from '../session/types';
 import { RateService } from '../rate/rate.service';
+import { CalculationService } from '../calculation/calculation.service';
 
 @Injectable()
 export class ValidationService {
   private readonly local: string;
   private readonly weekends: string[];
+  private readonly maxKM: number;
+  private readonly maxDaysRent: number;
+  private readonly maxDaysBetweenRent: number;
   constructor(
     private readonly pgService: PgService,
     private readonly configService: ConfigService,
     private readonly rateService: RateService,
+    private readonly calculationService: CalculationService,
   ) {
     this.local = this.configService.get<string>('DATE_LOCAL');
     this.weekends = [
       this.configService.get<string>('DATE_WEEKEND1'),
       this.configService.get<string>('DATE_WEEKEND2'),
     ];
+    this.maxKM = this.configService.get<number>('VALIDATE_MAX_KM');
+    this.maxDaysRent = this.configService.get<number>('VALIDATE_MAX_DAYS_RENT');
+    this.maxDaysBetweenRent = this.configService.get<number>(
+      'VALIDATE_MAX_DAYS_BETWEEN_RENTS',
+    );
   }
 
-  async validateForCost(dto: costCalcDTO, car) {
+  async validateForCost(dto: costCalcDTO, car): Promise<string> {
     if (
       this.validateDateIsWeekendOnStart(dto.date_start) ===
       strCon.error.startOnWeekend
@@ -42,29 +52,23 @@ export class ValidationService {
     ) {
       return strCon.error.close30DayLimitPassed;
     }
-    const validCar = this.validateCarOnStart(car);
-    if (typeof validCar == 'string') {
-      return validCar;
+    const errorOrValidCar = this.validateCarOnStart(car);
+    if (typeof errorOrValidCar == 'string') {
+      return errorOrValidCar;
     }
     if (
-      (await this.validate3DaysRangeOnStart(validCar.id)) ===
-      strCon.error.startLowPeriod
+      (await this.validate3DaysRangeOnStart(
+        errorOrValidCar.id,
+        dto.date_start,
+      )) === strCon.error.startLowPeriod
     ) {
       return strCon.error.startLowPeriod;
     }
-    const validateAverageMileage = await this.validateAverageMileage(
-      dto.date_start,
-      dto.date_end,
-      dto.mileagePerDay,
-      true,
-    );
-    if (validateAverageMileage.message === strCon.error.closeOverTax) {
-      return strCon.error.closeOverTax;
-    }
+
     return strCon.success.start;
   }
 
-  async validateForStart(dto: sessionStartDTO, car) {
+  async validateForStart(dto: sessionStartDTO, car): Promise<string> {
     if (
       this.validateDateIsWeekendOnStart(dto.date_start) ===
       strCon.error.startOnWeekend
@@ -84,13 +88,14 @@ export class ValidationService {
     ) {
       return strCon.error.close30DayLimitPassed;
     }
-    const validCar = this.validateCarOnStart(car);
-    if (typeof validCar == 'string') {
-      return validCar;
+    const errorOrValidCar = this.validateCarOnStart(car);
+    //case error
+    if (typeof errorOrValidCar == 'string') {
+      return errorOrValidCar;
     }
-    const carId = validCar.id;
+    const carId = errorOrValidCar.id;
     if (
-      (await this.validate3DaysRangeOnStart(carId)) ===
+      (await this.validate3DaysRangeOnStart(carId, dto.date_start)) ===
       strCon.error.startLowPeriod
     ) {
       return strCon.error.startLowPeriod;
@@ -116,11 +121,14 @@ export class ValidationService {
       fineStatus[strCon.error.close30DayLimitPassed] =
         validate30DaysLimitOnClose.value;
     }
-    const totalHours = this.getHours(
+    const totalHours = this.calculationService.getHours(
       currentSession.rows[0].date_start,
       dto.date_end,
     );
-    const kmPerDay = this.getKmPerDay(totalHours, dto.mileage);
+    const kmPerDay = this.calculationService.getKmPerDay(
+      totalHours,
+      dto.mileage,
+    );
     const validateAverageMileage = await this.validateAverageMileage(
       currentSession.rows[0].date_start,
       dto.date_end,
@@ -156,21 +164,27 @@ export class ValidationService {
     }
   }
 
-  async validate3DaysRangeOnStart(carId: number): Promise<string> {
+  async validate3DaysRangeOnStart(
+    carId: number,
+    startDate: Date,
+  ): Promise<string> {
     const lastCarSessions = await this.pgService.pg.query(
-      `SELECT date_end FROM sessions WHERE car_id=${carId} ORDER BY date_end DESC LIMIT 1;`,
+      `SELECT date_end FROM sessions WHERE car_id=$1 ORDER BY date_end DESC LIMIT 1;`,
+      [carId],
     );
     if (!lastCarSessions.rows.length) {
       return strCon.success.startDate3DayRange;
     }
-    const now = new Date();
+    const compareDate = new Date(startDate);
     const lastDateBooked = lastCarSessions.rows[0].date_end;
     const diff = Math.ceil(
-      Math.floor(new Date(now).valueOf() - new Date(lastDateBooked).valueOf()) /
+      Math.floor(
+        new Date(compareDate).valueOf() - new Date(lastDateBooked).valueOf(),
+      ) /
         36e5 /
         24,
     );
-    if (diff >= 3) {
+    if (diff >= this.maxDaysBetweenRent) {
       return strCon.success.startDate3DayRange;
     } else {
       return strCon.error.startLowPeriod;
@@ -198,7 +212,7 @@ export class ValidationService {
         36e5 /
         24,
     );
-    if (diff > 30) {
+    if (diff > this.maxDaysRent) {
       return { message: strCon.error.close30DayLimitPassed, value: diff };
     } else {
       return { message: strCon.success.close30DayLimitNotPassed };
@@ -212,33 +226,35 @@ export class ValidationService {
     calc = false,
     rate_id = 0,
   ) {
-    let numToCompare = 500;
+    let maxKm = this.maxKM;
     if (rate_id) {
       const rate: getTaxRes = await this.rateService.getRateById(rate_id);
-      numToCompare = rate !== 0 ? rate.cost : 500;
+      maxKm = !!rate ? rate.cost : this.maxKM;
     }
-    const totalHours = this.getHours(date_start, date_end);
-    const kmPerDay = calc ? mileage : this.getKmPerDay(totalHours, mileage);
-    if (kmPerDay <= numToCompare) {
+    const totalHours = this.calculationService.getHours(date_start, date_end);
+    const kmPerDay = calc
+      ? mileage
+      : this.calculationService.getKmPerDay(totalHours, mileage);
+    if (kmPerDay <= maxKm) {
       return { message: strCon.success.closeOverTax };
     } else {
-      const diff = mileage - 30 * numToCompare;
+      const diff = mileage - this.maxDaysRent * maxKm;
       return { message: strCon.error.closeOverTax, value: diff };
     }
   }
-  getHours(startDate: Date, endDate: Date): number {
-    return (
-      Math.floor(new Date(endDate).valueOf() - new Date(startDate).valueOf()) /
-      36e5
-    );
-  }
-
-  getDays(hours: number): number {
-    return Math.ceil(hours / 24);
-  }
-
-  getKmPerDay(hours: number, total_km: number): number {
-    const days = Math.ceil(hours / 24);
-    return total_km / days;
-  }
+  // getHours(startDate: Date, endDate: Date): number {
+  //   return (
+  //     Math.floor(new Date(endDate).valueOf() - new Date(startDate).valueOf()) /
+  //     36e5
+  //   );
+  // }
+  //
+  // getDays(hours: number): number {
+  //   return Math.ceil(hours / 24);
+  // }
+  //
+  // getKmPerDay(hours: number, total_km: number): number {
+  //   const days = Math.ceil(hours / 24);
+  //   return total_km / days;
+  // }
 }

@@ -9,18 +9,15 @@ type sessionCloseDTO = {
   date_end: Date;
   car_id: number;
 };
-type getTaxRes =
-  | {
-      id: number;
-      cost: number;
-    }
-  | 0;
-type getDiscountRes =
-  | {
-      id: number;
-      discount_percent: number;
-    }
-  | 0;
+type getTaxRes = {
+  id: number;
+  cost: number;
+} | null;
+
+type getDiscountRes = {
+  id: number;
+  discount_percent: number;
+} | null;
 
 type sessionType = {
   id: number;

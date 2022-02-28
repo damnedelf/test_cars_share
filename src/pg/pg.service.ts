@@ -9,10 +9,9 @@ export class PgService {
   constructor(private configService: ConfigService) {
     this.pg = new Pool({
       user: this.configService.get<string>('DB_USER'),
-      host: this.configService.get<string>('DB_HOST'),
+      host: this.configService.get<string>('DB_USER'),
       database: this.configService.get<string>('DB_NAME'),
       password: this.configService.get<string>('DB_PASSWORD'),
-      port: parseInt(this.configService.get<string>('DB_PORT')),
     });
   }
 

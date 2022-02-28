@@ -12,7 +12,7 @@ export class RateService {
       [km],
     );
 
-    return rate.rows[0]?.id ? rate.rows[0] : 0;
+    return rate.rows[0]?.id ? rate.rows[0] : null;
   }
 
   async getRateById(id: number): Promise<getTaxRes> {

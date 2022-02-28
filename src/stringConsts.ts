@@ -9,7 +9,7 @@ const strCon: {
     startLowPeriod: "3 DAYS DIDN'T PASS. CAR CANNOT BE BOOKED",
     startOnWeekend: "CAN'T START SESSION ON WEEKAND - NOBODY IN OFFICE",
     startCarIsNotFree: 'CAR IS BOOKED',
-    startCarIsNotFound: "CAR DOESN'T EXISTS OR IS BOOKED",
+    startCarIsNotFound: "CAR DOESN'T EXISTS",
     closeSessionNotFound: 'ACTIVE SESSION NOT FOUND',
     close30DayLimitPassed: 'SESSION LAST MORE THAN 30 DAYS.',
     closeOnWeekend: "CAN'T CLOSE SESSION ON WEEKAND - NOBODY IN OFFICE",
@@ -23,6 +23,7 @@ const strCon: {
     close30DayLimitNotPassed: '30 DAYS NOT PASSED.NO FINE',
     close: 'SUCCESSFUL SESSION CLOSE',
     closeOverTax: 'AVERAGE MILEAGE LESS 500. NO FINE',
+    closedWithFines: 'SESSION CLOSE WITH FINES',
   },
 };
 

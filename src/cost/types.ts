@@ -4,4 +4,11 @@ type costCalcDTO = {
   car_id: number;
   mileagePerDay: number;
 };
-export { costCalcDTO };
+type carType = {
+  brand: string;
+  model: string;
+  vin: string;
+  number: string;
+  in_work: boolean;
+};
+export { costCalcDTO, carType };

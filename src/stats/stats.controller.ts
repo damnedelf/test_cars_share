@@ -1,4 +1,4 @@
-import { Controller, Get, Body, Query } from '@nestjs/common';
+import { Controller, Get, Body, Query, Response } from '@nestjs/common';
 import { StatsService } from './stats.service';
 import { statsDTO } from './types';
 

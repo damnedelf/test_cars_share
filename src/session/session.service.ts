@@ -15,9 +15,11 @@ import { QueryResult } from 'pg';
 import { ValidationService } from '../validation/validation.service';
 import { CalculationService } from '../calculation/calculation.service';
 import { RateService } from '../rate/rate.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class SessionService {
+  private readonly maxKM: number;
   constructor(
     private readonly pgService: PgService,
     private readonly carService: CarService,
@@ -25,9 +27,12 @@ export class SessionService {
     private readonly discountService: DiscountService,
     private readonly validationService: ValidationService,
     private readonly calculationService: CalculationService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.maxKM = this.configService.get<number>('VALIDATE_MAX_KM');
+  }
 
-  async start(dto: sessionStartDTO) {
+  async start(dto: sessionStartDTO): Promise<string> {
     try {
       const car = await this.carService.getCar(dto.car_id);
       const validate = await this.validationService.validateForStart(dto, car);
@@ -46,12 +51,12 @@ export class SessionService {
     }
   }
 
-  async close(dto: sessionCloseDTO) {
+  async close(dto: sessionCloseDTO): Promise<string> {
     const currentSession = await this.getActiveSession(dto.car_id);
     if (!currentSession.rows[0]) {
       return strCon.error.closeSessionNotFound;
     }
-    let fineObj: {
+    let validateObj: {
       kmPerDay: number;
       totalHours: number;
       fineStatus: { [key: string]: number };
@@ -63,7 +68,7 @@ export class SessionService {
     if (typeof validate === 'string') {
       return validate;
     } else {
-      fineObj = validate;
+      validateObj = validate;
     }
     const sessionId = currentSession.rows[0].id;
     const carId = currentSession.rows[0].car_id;
@@ -72,8 +77,11 @@ export class SessionService {
     let summ = 0;
     const argsForQ = [];
     let finalQString = 'UPDATE sessions SET ';
-    const days = this.calculationService.getDays(fineObj.totalHours);
-    if (!Object.keys(fineObj.fineStatus).length) {
+    const days = this.calculationService.getDays(
+      currentSession.rows[0].date_start,
+      dto.date_end,
+    );
+    if (!Object.keys(validateObj.fineStatus).length) {
       let index = 1;
       const rate = await this.rateService.getRateById(rate_id);
 
@@ -94,24 +102,27 @@ export class SessionService {
       finalQString =
         finalQString +
         `date_end=$${index++}, summ=$${index++}, is_active=false WHERE id=$${index++};`;
-      return await this.pgService.pg.query(finalQString, argsForQ);
+      await this.pgService.pg.query(finalQString, argsForQ);
     } else {
-      summ = days * 500;
+      summ = days * this.maxKM;
       let index = 1;
-      if (!!fineObj.fineStatus[strCon.error.close30DayLimitPassed]) {
+      if (!!validateObj.fineStatus[strCon.error.close30DayLimitPassed]) {
         finalQString = finalQString + `excess_days=$${index++} `;
-        argsForQ.push(fineObj.fineStatus[strCon.error.close30DayLimitPassed]);
+        argsForQ.push(
+          validateObj.fineStatus[strCon.error.close30DayLimitPassed],
+        );
       }
-      if (!!fineObj.fineStatus[strCon.error.closeOverTax]) {
+      if (!!validateObj.fineStatus[strCon.error.closeOverTax]) {
         finalQString = finalQString + `excess_km=$${index++}, `;
-        argsForQ.push(fineObj.fineStatus[strCon.error.closeOverTax]);
+        argsForQ.push(validateObj.fineStatus[strCon.error.closeOverTax]);
       }
       argsForQ.push(summ);
-      argsForQ.push(sessionId * 1);
+      argsForQ.push(sessionId);
       await this.pgService.pg.query(
         `${finalQString}  fine=true, summ=$${index++}::integer WHERE id=$${index++};`,
         argsForQ,
       );
+      return strCon.error.closedWithFines;
     }
     return strCon.success.close;
   }
@@ -124,10 +135,20 @@ export class SessionService {
     return currentSession;
   }
 
-  async getAllSessions(): Promise<sessionType[]> {
-    const sessions: QueryResult = await this.pgService.pg.query(
-      'SELECT * FROM sessions ;',
-    );
+  async getSessionsByRange(
+    dateStart: Date,
+    dateEnd: Date,
+    carId: number | null = null,
+  ): Promise<sessionType[]> {
+    const sessions: QueryResult = !!carId
+      ? await this.pgService.pg.query(
+          'SELECT * FROM sessions WHERE (($1>=date_start AND $1<=date_end) OR ($2>=date_start AND $2<=date_end)) AND car_id=$3;',
+          [dateStart, dateEnd, carId],
+        )
+      : await this.pgService.pg.query(
+          'SELECT * FROM sessions WHERE ($1>=date_start AND $1<=date_end) OR ($2>=date_start AND $2<=date_end);',
+          [dateStart, dateEnd],
+        );
     return sessions.rows;
   }
 }

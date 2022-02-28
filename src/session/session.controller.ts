@@ -12,22 +12,20 @@ export class SessionController {
     const result = await this.sessionService.start(dto);
     if (result === strCon.success.start) {
       res.status(201);
-      res.send(result);
     } else {
       res.status(409);
-      res.send(result);
     }
+    res.send(result);
   }
 
   @Put()
   async close(@Body() dto: sessionCloseDTO, @Response() res) {
     const result = await this.sessionService.close(dto);
-    if (result === strCon.success.start) {
+    if (result === strCon.success.close) {
       res.status(200);
-      res.send(result);
     } else {
       res.status(409);
-      res.send(result);
     }
+    res.send(result);
   }
 }

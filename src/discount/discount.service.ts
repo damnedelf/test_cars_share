@@ -13,6 +13,6 @@ export class DiscountService {
         $1 <= max LIMIT 1;`,
       [days],
     );
-    return discount.rows[0]?.id ? discount.rows[0] : 0;
+    return discount.rows[0]?.id ? discount.rows[0] : null;
   }
 }

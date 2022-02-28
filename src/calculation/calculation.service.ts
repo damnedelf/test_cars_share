@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class CalculationService {
-  getDays(hours: number): number {
+  getDays(startDate: Date, endDate: Date): number {
+    const hours = this.getHours(startDate, endDate);
     return Math.ceil(hours / 24);
   }
   getHours(startDate: Date, endDate: Date): number {
@@ -11,15 +12,15 @@ export class CalculationService {
       36e5
     );
   }
-  getDaysArray(startDate: Date, endDate: Date) {
+  getDaysArray(startDate: Date, endDate: Date): Date[] {
     return this.getDates(startDate, endDate);
   }
-  addDays(currentDate, days) {
+  addDays(currentDate, days): Date {
     const date = new Date(currentDate.valueOf());
     date.setDate(date.getDate() + days);
     return date;
   }
-  getDates(startDate, stopDate) {
+  getDates(startDate, stopDate): Date[] {
     const dateArray = [];
     let currentDate = new Date(startDate);
     while (currentDate <= new Date(stopDate)) {
@@ -27,5 +28,9 @@ export class CalculationService {
       currentDate = this.addDays(currentDate, 1);
     }
     return dateArray;
+  }
+  getKmPerDay(hours: number, total_km: number): number {
+    const days = Math.ceil(hours / 24);
+    return total_km / days;
   }
 }
