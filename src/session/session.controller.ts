@@ -11,21 +11,19 @@ export class SessionController {
   async start(@Body() dto: sessionStartDTO, @Response() res) {
     const result = await this.sessionService.start(dto);
     if (result === strCon.success.start) {
-      res.status(201);
+      res.status(201).json({ message: result });
     } else {
-      res.status(409);
+      res.status(409).json({ message: result });
     }
-    res.send(result);
   }
 
   @Put()
   async close(@Body() dto: sessionCloseDTO, @Response() res) {
     const result = await this.sessionService.close(dto);
     if (result === strCon.success.close) {
-      res.status(200);
+      res.status(200).json({ message: result });
     } else {
-      res.status(409);
+      res.status(409).json({ message: result });
     }
-    res.send(result);
   }
 }

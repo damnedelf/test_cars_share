@@ -15,10 +15,9 @@ export class CostController {
   async calculate(@Query() dto: costCalcDTO, @Response() res) {
     const result = await this.costService.calculate(dto);
     if (typeof result === 'number') {
-      res.status(200);
+      res.status(200).json({ message: result });
     } else {
-      res.status(409);
+      res.status(409).json({ message: result });
     }
-    res.send(result);
   }
 }

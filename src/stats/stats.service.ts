@@ -20,7 +20,7 @@ export class StatsService {
       dto.date_end,
     );
     const carId = parseInt(String(dto.car_id));
-    const sessions: sessionType[] = carId
+    const sessions: sessionType[] = !carId
       ? await this.sessionService.getSessionsByRange(
           dto.date_start,
           dto.date_end,

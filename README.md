@@ -14,6 +14,7 @@ Docker
 Create .env file based on .env.example
 You can also configurate error/success messages in /src/stringConsts.ts
 P.S.> For now most of success messages are not usefull but can be used later.
+P.P.S> Use test_auto_sharing.json as Postman Collection for test
 
 ## Running the app
 
@@ -33,7 +34,7 @@ Sessions (Dates from 2022-02-01 to 2022-02-28, cars in usage id 1-2)
 
 
 ## Endpoints
-#### URL://hostname:port/api/cost  METHOD - GET
+#### URL://hostname:port/api/cost/?  METHOD - GET
 Requires below data in query parameters:
 ````
 date_start: Date;
@@ -108,3 +109,33 @@ Optional -
    excess_days  - fulfilled
    excess_km - fulfilled
 ````
+
+#### URL://hostname:port/api/stats/?  METHOD - GET
+Requires below data in query parameters:
+````
+date_end: Date;
+date_start: Date;
+car_id?: number;
+Date format allowed YYYY-MM-DD or YYYY-MM-DD HH:mm:ss (expecting dates have valid format from frontEnd datepickers)
+````
+
+Returnes array type of 
+````
+[..., 
+day: {
+  id: number;
+  summ?: number;
+  excess_days?: number;
+  excess_km?: number;
+  fine: boolean;
+  date_start: Date;
+  date_end?: Date;
+  mileage?: number;
+  car_id: number;
+  tax_id: number;
+  discount_id: number;
+  }[]
+]
+````
+
+Or empty Array

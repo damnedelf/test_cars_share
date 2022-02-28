@@ -122,7 +122,7 @@ export class SessionService {
         `${finalQString}  fine=true, summ=$${index++}::integer WHERE id=$${index++};`,
         argsForQ,
       );
-      return strCon.error.closedWithFines;
+      return strCon.success.closedWithFines;
     }
     return strCon.success.close;
   }
@@ -142,12 +142,12 @@ export class SessionService {
   ): Promise<sessionType[]> {
     const sessions: QueryResult = !!carId
       ? await this.pgService.pg.query(
-          'SELECT * FROM sessions WHERE (($1>=date_start AND $1<=date_end) OR ($2>=date_start AND $2<=date_end)) AND car_id=$3;',
-          [dateStart, dateEnd, carId],
+          'SELECT * FROM sessions WHERE ((date_start>=$1 AND date_start<=$2) OR (date_end>=$1 AND date_end<=$2)) AND car_id=$3;',
+          [new Date(dateStart), new Date(dateEnd), carId],
         )
       : await this.pgService.pg.query(
-          'SELECT * FROM sessions WHERE ($1>=date_start AND $1<=date_end) OR ($2>=date_start AND $2<=date_end);',
-          [dateStart, dateEnd],
+          'SELECT * FROM sessions WHERE ((date_start>=$1 AND date_start<=$2) OR (date_end>=$1 AND date_end<=$2));',
+          [new Date(dateStart), new Date(dateEnd)],
         );
     return sessions.rows;
   }

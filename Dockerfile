@@ -9,6 +9,7 @@ RUN npm install
 COPY . .
 
 EXPOSE 3000
+
 COPY ./docker_postgres_init.sql /docker-entrypoint-initdb.d/docker_postgres_init.sql
 CMD ["npm", "run", "start:dev"]
-CMD ["docker-entrypoint.sh", "postgres"]
+
