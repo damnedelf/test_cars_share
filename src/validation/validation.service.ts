@@ -114,6 +114,7 @@ export class ValidationService {
     const validate30DaysLimitOnClose = this.validate30DaysLimitOnClose(
       currentSession.rows[0].date_start,
       dto.date_end,
+      currentSession.rows[0].date_end,
     );
     if (
       validate30DaysLimitOnClose.message === strCon.error.close30DayLimitPassed
@@ -204,7 +205,11 @@ export class ValidationService {
     }
   }
 
-  validate30DaysLimitOnClose(startDate: Date, closeDate: Date) {
+  validate30DaysLimitOnClose(
+    startDate: Date,
+    closeDate: Date,
+    promiseEndDate: Date = closeDate,
+  ) {
     const diff = Math.ceil(
       Math.floor(
         new Date(closeDate).valueOf() - new Date(startDate).valueOf(),
@@ -212,8 +217,18 @@ export class ValidationService {
         36e5 /
         24,
     );
-    if (diff > this.maxDaysRent) {
-      return { message: strCon.error.close30DayLimitPassed, value: diff };
+    const promiseDiff = Math.ceil(
+      Math.floor(
+        new Date(promiseEndDate).valueOf() - new Date(startDate).valueOf(),
+      ) /
+        36e5 /
+        24,
+    );
+    const diffCondition =
+      diff == promiseDiff ? diff > this.maxDaysRent : diff > promiseDiff;
+    const diffValue = diff == promiseDiff ? diff : diff - promiseDiff;
+    if (diffCondition) {
+      return { message: strCon.error.close30DayLimitPassed, value: diffValue };
     } else {
       return { message: strCon.success.close30DayLimitNotPassed };
     }
@@ -242,19 +257,4 @@ export class ValidationService {
       return { message: strCon.error.closeOverTax, value: diff };
     }
   }
-  // getHours(startDate: Date, endDate: Date): number {
-  //   return (
-  //     Math.floor(new Date(endDate).valueOf() - new Date(startDate).valueOf()) /
-  //     36e5
-  //   );
-  // }
-  //
-  // getDays(hours: number): number {
-  //   return Math.ceil(hours / 24);
-  // }
-  //
-  // getKmPerDay(hours: number, total_km: number): number {
-  //   const days = Math.ceil(hours / 24);
-  //   return total_km / days;
-  // }
 }

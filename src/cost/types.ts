@@ -5,6 +5,7 @@ type costCalcDTO = {
   mileagePerDay: number;
 };
 type carType = {
+  id: number;
   brand: string;
   model: string;
   vin: string;

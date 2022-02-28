@@ -41,7 +41,7 @@ date_start: Date;
 date_end: Date;
 car_id: number;
 mileagePerDay: number;
-Date format allowed YYYY-MM-DD or YYYY-MM-DD HH:mm:ss (expecting dates have valid format from frontEnd datepickers)
+Date format allowed YYYY-MM-DD  (expecting dates have valid format from frontEnd datepickers)
 ````
 Expecting responses:
 
@@ -62,7 +62,7 @@ car_id: number;
 date_start: Date;
 date_end: Date;
 rate_id: number;
-Date format allowed YYYY-MM-DD or YYYY-MM-DD HH:mm:ss (expecting dates have valid format from frontEnd datepickers)
+Date format allowed YYYY-MM-DD  (expecting dates have valid format from frontEnd datepickers)
 ````
 Expecting responses:
 
@@ -84,7 +84,7 @@ Requires below data in request body:
 mileage: number;
 date_end: Date;
 car_id: number;
-Date format allowed YYYY-MM-DD or YYYY-MM-DD HH:mm:ss (expecting dates have valid format from frontEnd datepickers)
+Date format allowed YYYY-MM-DD  (expecting dates have valid format from frontEnd datepickers)
 ````
 Expecting responses:
 
@@ -116,7 +116,7 @@ Requires below data in query parameters:
 date_end: Date;
 date_start: Date;
 car_id?: number;
-Date format allowed YYYY-MM-DD or YYYY-MM-DD HH:mm:ss (expecting dates have valid format from frontEnd datepickers)
+Date format allowed YYYY-MM-DD  (expecting dates have valid format from frontEnd datepickers)
 ````
 
 Returnes array type of 

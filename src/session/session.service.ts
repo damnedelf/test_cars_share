@@ -98,16 +98,17 @@ export class SessionService {
       }
       argsForQ.push(dto.date_end);
       argsForQ.push(summ);
+      argsForQ.push(dto.mileage);
       argsForQ.push(sessionId);
       finalQString =
         finalQString +
-        `date_end=$${index++}, summ=$${index++}, is_active=false WHERE id=$${index++};`;
+        `date_end=$${index++}, summ=$${index++}, is_active=false, mileage=$${index++} WHERE id=$${index++};`;
       await this.pgService.pg.query(finalQString, argsForQ);
     } else {
       summ = days * this.maxKM;
       let index = 1;
       if (!!validateObj.fineStatus[strCon.error.close30DayLimitPassed]) {
-        finalQString = finalQString + `excess_days=$${index++} `;
+        finalQString = finalQString + `excess_days=$${index++},`;
         argsForQ.push(
           validateObj.fineStatus[strCon.error.close30DayLimitPassed],
         );
@@ -117,9 +118,11 @@ export class SessionService {
         argsForQ.push(validateObj.fineStatus[strCon.error.closeOverTax]);
       }
       argsForQ.push(summ);
+      argsForQ.push(dto.date_end);
+      argsForQ.push(dto.mileage);
       argsForQ.push(sessionId);
       await this.pgService.pg.query(
-        `${finalQString}  fine=true, summ=$${index++}::integer WHERE id=$${index++};`,
+        `${finalQString}  fine=true, summ=$${index++}::integer, date_end=$${index++}, mileage=$${index++} WHERE id=$${index++};`,
         argsForQ,
       );
       return strCon.success.closedWithFines;

@@ -2,7 +2,7 @@
 version: "3.9"
 services:
   postgres:
-    container_name: postgres
+    container_name: $DB_USER
     image: postgres:11.2-alpine
     environment:
       POSTGRES_PASSWORD: $DB_PASSWORD

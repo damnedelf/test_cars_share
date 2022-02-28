@@ -4,11 +4,11 @@ import { Injectable } from '@nestjs/common';
 export class CalculationService {
   getDays(startDate: Date, endDate: Date): number {
     const hours = this.getHours(startDate, endDate);
-    return Math.ceil(hours / 24);
+    return Math.ceil(hours / 24) + 1;
   }
   getHours(startDate: Date, endDate: Date): number {
     return (
-      Math.floor(new Date(endDate).valueOf() - new Date(startDate).valueOf()) /
+      Math.ceil(new Date(endDate).valueOf() - new Date(startDate).valueOf()) /
       36e5
     );
   }

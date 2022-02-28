@@ -34,12 +34,14 @@ export class StatsService {
     if (!!dates.length && !!sessions.length) {
       dates.forEach((date) => {
         sessions.forEach((session: sessionType) => {
-          const time1 = new Date(date).getTime();
+          const currentTime = new Date(date).getTime();
           const timeS = new Date(session.date_start).getTime();
           const timeE = new Date(session.date_end).getTime();
           const condition = carId
-            ? session.car_id === carId && time1 >= timeS && time1 <= timeE
-            : time1 >= timeS && time1 <= timeE;
+            ? session.car_id === carId &&
+              currentTime >= timeS &&
+              currentTime <= timeE
+            : currentTime >= timeS && currentTime <= timeE;
           if (condition) {
             const statObj = {};
             statObj[date] = [];

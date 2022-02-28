@@ -14,6 +14,11 @@ type getTaxRes = {
   cost: number;
 } | null;
 
+type rateType = {
+  id: number;
+  cost: number;
+  mileage: number;
+};
 type getDiscountRes = {
   id: number;
   discount_percent: number;
@@ -22,6 +27,7 @@ type getDiscountRes = {
 type sessionType = {
   id: number;
   summ?: number;
+  is_active: boolean;
   excess_days?: number;
   excess_km?: number;
   fine: boolean;
@@ -29,7 +35,7 @@ type sessionType = {
   date_end?: Date;
   mileage?: number;
   car_id: number;
-  tax_id: number;
+  rate_id: number;
   discount_id: number;
 };
 export {
@@ -38,4 +44,5 @@ export {
   getTaxRes,
   getDiscountRes,
   sessionType,
+  rateType,
 };
