@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import {
-  getTaxRes,
+  discountType,
+  getDiscountRes,
   rateType,
   sessionCloseDTO,
   sessionStartDTO,
@@ -17,295 +18,21 @@ import { DiscountService } from '../discount/discount.service';
 import { ConfigService } from '@nestjs/config';
 import { CalculationService } from '../calculation/calculation.service';
 import { PgService } from '../pg/pg.service';
+import {
+  carsForTest,
+  discountsForTest,
+  ratesForTest,
+  sessionsForTest,
+} from '../../test/mockedData';
+import {
+  validateForClose,
+  validateForStart,
+} from '../../test/mockedFoosForTest';
 
-const cars: carType[] = [
-  {
-    id: 1,
-    brand: 'Lada',
-    model: 'Vesta 1.6',
-    vin: '4Y1SL65848Z411439',
-    number: 'A123BC 111RUS',
-    in_work: true,
-  },
-  {
-    id: 2,
-    brand: 'KIA',
-    model: 'Soul 2.0',
-    vin: '4Y1SL65848Z411438',
-    number: 'A456BC 121RUS',
-    in_work: false,
-  },
-  {
-    id: 3,
-    brand: 'HONDA',
-    model: 'CRV 2.4',
-    vin: '4Y1SL65848Z411437',
-    number: 'A789BC 131RUS',
-    in_work: false,
-  },
-  {
-    id: 4,
-    brand: 'HYUNDAI',
-    model: 'GETZ 1.1',
-    vin: '4Y1SL65848Z411436',
-    number: 'A012BC 141RUS',
-    in_work: false,
-  },
-  {
-    id: 5,
-    brand: 'GEELY',
-    model: 'ATLAS 2.4',
-    vin: '4Y1SL65848Z411435',
-    number: 'A345BC 151RUS',
-    in_work: false,
-  },
-];
-
-const sessions: sessionType[] = [
-  {
-    id: 1,
-    is_active: false,
-    summ: 5000,
-    excess_days: 0,
-    excess_km: 0,
-    fine: false,
-    date_start: new Date('2022-02-01'),
-    date_end: new Date('2022-02-10'),
-    mileage: 500,
-    car_id: 1,
-    rate_id: 2,
-    discount_id: 3,
-  },
-  {
-    id: 2,
-    is_active: false,
-    summ: 1000,
-    excess_days: 0,
-    excess_km: 0,
-    fine: false,
-    date_start: new Date('2022-02-14'),
-    date_end: new Date('2022-02-28'),
-    mileage: 3000,
-    car_id: 1,
-    rate_id: 1,
-    discount_id: 2,
-  },
-  {
-    id: 3,
-    is_active: false,
-    summ: 1333,
-    excess_days: 0,
-    excess_km: 7000,
-    fine: true,
-    date_start: new Date('2022-02-01'),
-    date_end: new Date('2022-02-03'),
-    mileage: 8000,
-    car_id: 2,
-    rate_id: 3,
-    discount_id: 0,
-  },
-  {
-    id: 4,
-    is_active: false,
-    summ: 6666,
-    excess_days: 0,
-    excess_km: 0,
-    fine: false,
-    date_start: new Date('2022-02-19'),
-    date_end: new Date('2022-02-24'),
-    mileage: 1000,
-    car_id: 2,
-    rate_id: 2,
-    discount_id: 3,
-  },
-];
-
-const weekends = ['воскресенье', 'суббота'];
-const locale = 'ru-RU';
-const rates: rateType[] = [
-  {
-    id: 1,
-    cost: 270,
-    mileage: 200,
-  },
-  {
-    id: 2,
-    cost: 330,
-    mileage: 350,
-  },
-  {
-    id: 3,
-    cost: 390,
-    mileage: 500,
-  },
-];
-
-function validateForStart(dto: sessionStartDTO, car: carType) {
-  if (
-    validateDateIsWeekendOnStart(dto.date_start) === strCon.error.startOnWeekend
-  ) {
-    return strCon.error.startOnWeekend;
-  }
-  if (
-    validateDateIsWeekendOnClose(dto.date_end) === strCon.error.closeOnWeekend
-  ) {
-    return strCon.error.closeOnWeekend;
-  }
-  if (
-    validate30DaysLimitOnClose(dto.date_start, dto.date_end).message ===
-    strCon.error.close30DayLimitPassed
-  ) {
-    return strCon.error.close30DayLimitPassed;
-  }
-  const errorOrValidCar = validateCarOnStart(car);
-  //case error
-  if (typeof errorOrValidCar == 'string') {
-    return errorOrValidCar;
-  }
-  const carId = errorOrValidCar.id;
-  if (
-    validate3DaysRangeOnStart(carId, dto.date_start) ===
-    strCon.error.startLowPeriod
-  ) {
-    return strCon.error.startLowPeriod;
-  }
-  return strCon.success.start;
-}
-
-function validateForClose(
-  dto: sessionCloseDTO,
-  currentSession: sessionType,
-  calculationService,
-) {
-  const fineStatus: { [key: string]: number } = {};
-  if (
-    validateDateIsWeekendOnClose(dto.date_end) === strCon.error.closeOnWeekend
-  ) {
-    return strCon.error.closeOnWeekend;
-  }
-  const validate30Days = validate30DaysLimitOnClose(
-    currentSession.date_start,
-    dto.date_end,
-  );
-  if (validate30Days.message === strCon.error.close30DayLimitPassed) {
-    fineStatus[strCon.error.close30DayLimitPassed] = validate30Days.value;
-  }
-  const totalHours = calculationService.getHours(
-    currentSession.date_start,
-    dto.date_end,
-  );
-  const kmPerDay = calculationService.getKmPerDay(totalHours, dto.mileage);
-  const validateAvMil = validateAverageMileage(
-    currentSession.date_start,
-    dto.date_end,
-    dto.mileage,
-    false,
-    currentSession.rate_id,
-    calculationService,
-  );
-  if (validateAvMil.message === strCon.error.closeOverTax) {
-    fineStatus[strCon.error.closeOverTax] = validateAvMil.value;
-  }
-  return { kmPerDay, totalHours, fineStatus };
-}
-
-function validateAverageMileage(
-  date_start: Date,
-  date_end: Date,
-  mileage: number,
-  calc = false,
-  rate_id = 0,
-  calculationService,
-) {
-  let maxKm = 500;
-  if (rate_id) {
-    const rate: getTaxRes = rates.find((it: rateType) => it.id === rate_id);
-    maxKm = !!rate ? rate.cost : 500;
-  }
-  const totalHours = calculationService.getHours(date_start, date_end);
-  const kmPerDay = calc
-    ? mileage
-    : calculationService.getKmPerDay(totalHours, mileage);
-  if (kmPerDay <= maxKm) {
-    return { message: strCon.success.closeOverTax };
-  } else {
-    const diff = mileage - this.maxDaysRent * maxKm;
-    return { message: strCon.error.closeOverTax, value: diff };
-  }
-}
-function validateDateIsWeekendOnStart(date: Date): string {
-  const isWeekend = weekends.find(
-    (day: string) =>
-      day === new Date(date).toLocaleDateString(locale, { weekday: 'long' }),
-  );
-  if (!!isWeekend) {
-    return strCon.error.startOnWeekend;
-  } else {
-    return strCon.success.startDateNotWeekend;
-  }
-}
-
-function validateDateIsWeekendOnClose(date: Date): string {
-  const isWeekend = weekends.find(
-    (day: string) =>
-      day === new Date(date).toLocaleDateString(locale, { weekday: 'long' }),
-  );
-  if (!!isWeekend) {
-    return strCon.error.closeOnWeekend;
-  } else {
-    return strCon.success.startDateNotWeekend;
-  }
-}
-
-function validate30DaysLimitOnClose(startDate: Date, closeDate: Date) {
-  const diff = Math.ceil(
-    Math.floor(new Date(closeDate).valueOf() - new Date(startDate).valueOf()) /
-      36e5 /
-      24,
-  );
-  if (diff > 30) {
-    return { message: strCon.error.close30DayLimitPassed, value: diff };
-  } else {
-    return { message: strCon.success.close30DayLimitNotPassed };
-  }
-}
-
-function validate3DaysRangeOnStart(carId: number, startDate: Date): string {
-  const lastCarSession = sessions.reduce(function (r, a) {
-    return r.date_end > a.date_end ? r : a;
-  });
-  if (!lastCarSession) {
-    return strCon.success.startDate3DayRange;
-  }
-  const compareDate = new Date(startDate);
-  const lastDateBooked = lastCarSession.date_end;
-  const diff = Math.ceil(
-    Math.floor(
-      new Date(compareDate).valueOf() - new Date(lastDateBooked).valueOf(),
-    ) /
-      36e5 /
-      24,
-  );
-  if (diff >= 3) {
-    return strCon.success.startDate3DayRange;
-  } else {
-    return strCon.error.startLowPeriod;
-  }
-}
-
-function validateCarOnStart(car: carType) {
-  if (!car) {
-    return strCon.error.startCarIsNotFound;
-  }
-  if (car?.in_work) {
-    return strCon.error.startCarIsNotFree;
-  }
-  return car;
-}
 const mockSessionService = {
   start: jest.fn((dto: sessionStartDTO) => {
     try {
-      const car = cars.find((it: carType) => dto.car_id === it.id);
+      const car = carsForTest.find((it: carType) => dto.car_id === it.id);
       const validate = validateForStart(dto, car);
       if (validate !== strCon.success.start) {
         return validate;
@@ -315,13 +42,76 @@ const mockSessionService = {
       return strCon.error.start;
     }
   }),
-  close: jest.fn(() => {
-    return 0;
-  }),
+  close: jest.fn(
+    (dto: sessionCloseDTO, calculationService: CalculationService) => {
+      const currentSession = sessionsForTest.find(
+        (it: sessionType) => it.car_id === dto.car_id && it.is_active,
+      );
+      if (!currentSession) {
+        return strCon.error.closeSessionNotFound;
+      }
+      let validateObj: {
+        kmPerDay: number;
+        totalHours: number;
+        fineStatus: { [key: string]: number };
+      };
+      const validate = validateForClose(
+        dto,
+        currentSession,
+        calculationService,
+      );
+      if (typeof validate === 'string') {
+        return validate;
+      } else {
+        validateObj = validate;
+      }
+      const sessionId = currentSession.id;
+      const rate_id = currentSession.rate_id;
+      let summ = 0;
+      let finalQString = 'UPDATE sessions SET ';
+      const days = calculationService.getDays(
+        currentSession.date_start,
+        dto.date_end,
+      );
+      if (!Object.keys(validateObj.fineStatus).length) {
+        const rate = ratesForTest.find((it: rateType) => it.id === rate_id);
+
+        const discount: getDiscountRes = discountsForTest.find(
+          (it: discountType) => days >= it.min && days <= it.max,
+        );
+        if (rate) {
+          summ = days * rate.cost;
+        }
+        if (discount) {
+          finalQString = finalQString + `discount_id=${discount.id}, `;
+          summ = summ - Math.floor((summ * discount.discount_percent) / 100);
+        }
+        finalQString =
+          finalQString +
+          `date_end=${dto.date_end}, summ=${summ}, is_active=false, mileage=${dto.mileage} WHERE id=${sessionId};`;
+        return finalQString;
+      } else {
+        summ = days * 500;
+        if (!!validateObj.fineStatus[strCon.error.close30DayLimitPassed]) {
+          finalQString =
+            finalQString +
+            `excess_days=${
+              validateObj.fineStatus[strCon.error.close30DayLimitPassed]
+            },`;
+        }
+        if (!!validateObj.fineStatus[strCon.error.closeOverTax]) {
+          finalQString =
+            finalQString +
+            `excess_km=${validateObj.fineStatus[strCon.error.closeOverTax]}, `;
+        }
+        return `${finalQString}  fine=true, summ=${summ}::integer, date_end=${dto.date_end}, mileage=${dto.mileage} WHERE id=${sessionId};`;
+      }
+    },
+  ),
 };
 
-describe('[CLASS] SessionService', () => {
-  // let mockSessionService: SessionService;
+describe('SessionService', () => {
+  let sessionServiceForReplace: SessionService;
   let sessionService: SessionService;
   let carService: CarService;
   let rateService: RateService;
@@ -346,7 +136,7 @@ describe('[CLASS] SessionService', () => {
       .overrideProvider(SessionService)
       .useValue(mockSessionService)
       .compile();
-    // mockSessionService = module.get<SessionService>(SessionService);
+    sessionServiceForReplace = module.get<SessionService>(SessionService);
     configService = new ConfigService();
     pgService = new PgService(configService);
     calculationService = new CalculationService();
@@ -438,5 +228,71 @@ describe('[CLASS] SessionService', () => {
         rate_id: 1,
       }),
     ).toEqual(strCon.success.start);
+  });
+  it('SessionService close: error - session not found', () => {
+    expect(
+      mockSessionService.close(
+        {
+          date_end: new Date('2022-03-24'),
+          car_id: 3,
+          mileage: 1000,
+        },
+        calculationService,
+      ),
+    ).toEqual(strCon.error.closeSessionNotFound);
+  });
+  it('SessionService close: error - close on weekand', () => {
+    expect(
+      mockSessionService.close(
+        {
+          date_end: new Date('2022-02-27'),
+          car_id: 4,
+          mileage: 1000,
+        },
+        calculationService,
+      ),
+    ).toEqual(strCon.error.closeOnWeekend);
+  });
+  it('SessionService close: got fines by daysLimit', () => {
+    expect(
+      mockSessionService.close(
+        {
+          date_end: new Date('2022-03-24'),
+          car_id: 4,
+          mileage: 1000,
+        },
+        calculationService,
+      ),
+    ).toEqual(
+      'UPDATE sessions SET excess_days=33,  fine=true, summ=17000::integer, date_end=Thu Mar 24 2022 03:00:00 GMT+0300 (Moscow Standard Time), mileage=1000 WHERE id=5;',
+    );
+  });
+  it('SessionService close: got fines by mileageLimit', () => {
+    expect(
+      mockSessionService.close(
+        {
+          date_end: new Date('2022-02-24'),
+          car_id: 4,
+          mileage: 10000,
+        },
+        calculationService,
+      ),
+    ).toEqual(
+      'UPDATE sessions SET excess_km=8020,   fine=true, summ=3000::integer, date_end=Thu Feb 24 2022 03:00:00 GMT+0300 (Moscow Standard Time), mileage=10000 WHERE id=5;',
+    );
+  });
+  it('SessionService close: success - with discount', () => {
+    expect(
+      mockSessionService.close(
+        {
+          date_end: new Date('2022-02-24'),
+          car_id: 4,
+          mileage: 1000,
+        },
+        calculationService,
+      ),
+    ).toEqual(
+      'UPDATE sessions SET discount_id=2, date_end=Thu Feb 24 2022 03:00:00 GMT+0300 (Moscow Standard Time), summ=1782, is_active=false, mileage=1000 WHERE id=5;',
+    );
   });
 });

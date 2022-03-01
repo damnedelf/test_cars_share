@@ -10,9 +10,6 @@
     "build": "nest build",
     "start:dev": "nest start --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "migrate:tables": "node src/seed/dbCreate.js",
-    "seed:required": "node src/seed/dbSeed.js",
-    "seed:sessions": "node src/seed/dbSessions.js",
     "test": "jest"
   },
   "dependencies": {

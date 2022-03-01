@@ -5,14 +5,14 @@ const strCon: {
 } = {
   common: { fine: 'NO_FINE' },
   error: {
-    start: 'CAR CANNOT BE BOOKED',
-    startLowPeriod: "3 DAYS DIDN'T PASS. CAR CANNOT BE BOOKED",
-    startOnWeekend: "CAN'T START SESSION ON WEEKAND - NOBODY IN OFFICE",
+    start: "CAR CAN'T BE BOOKED",
+    startLowPeriod: "3 DAYS DIDN'T PASS. CAR CAN'T BE BOOKED",
+    startOnWeekend: "CAN'T START SESSION ON WEEKEND - NOBODY IN OFFICE",
     startCarIsNotFree: 'CAR IS BOOKED',
     startCarIsNotFound: "CAR DOESN'T EXISTS",
     closeSessionNotFound: 'ACTIVE SESSION NOT FOUND',
     close30DayLimitPassed: 'SESSION LAST MORE THAN 30 DAYS.',
-    closeOnWeekend: "CAN'T CLOSE SESSION ON WEEKAND - NOBODY IN OFFICE",
+    closeOnWeekend: "CAN'T CLOSE SESSION ON WEEKEND - NOBODY IN OFFICE",
     closeOverTax: 'AVERAGE MILEAGE MORE THAN 500. FINED',
   },
   success: {

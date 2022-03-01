@@ -89,7 +89,6 @@ export class ValidationService {
       return strCon.error.close30DayLimitPassed;
     }
     const errorOrValidCar = this.validateCarOnStart(car);
-    //case error
     if (typeof errorOrValidCar == 'string') {
       return errorOrValidCar;
     }
@@ -253,7 +252,7 @@ export class ValidationService {
     if (kmPerDay <= maxKm) {
       return { message: strCon.success.closeOverTax };
     } else {
-      const diff = mileage - this.maxDaysRent * maxKm;
+      const diff = this.maxDaysRent * maxKm - mileage;
       return { message: strCon.error.closeOverTax, value: diff };
     }
   }

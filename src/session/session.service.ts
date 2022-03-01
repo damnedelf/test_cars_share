@@ -20,6 +20,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class SessionService {
   private readonly maxKM: number;
+  private readonly maxSummPerDay: number;
   constructor(
     private readonly pgService: PgService,
     private readonly carService: CarService,
@@ -30,6 +31,7 @@ export class SessionService {
     private readonly configService: ConfigService,
   ) {
     this.maxKM = this.configService.get<number>('VALIDATE_MAX_KM');
+    this.maxSummPerDay = this.configService.get<number>('VALIDATE_MAX_SUMM');
   }
 
   async start(dto: sessionStartDTO): Promise<string> {
@@ -105,7 +107,7 @@ export class SessionService {
         `date_end=$${index++}, summ=$${index++}, is_active=false, mileage=$${index++} WHERE id=$${index++};`;
       await this.pgService.pg.query(finalQString, argsForQ);
     } else {
-      summ = days * this.maxKM;
+      summ = days * this.maxSummPerDay;
       let index = 1;
       if (!!validateObj.fineStatus[strCon.error.close30DayLimitPassed]) {
         finalQString = finalQString + `excess_days=$${index++},`;
@@ -122,7 +124,7 @@ export class SessionService {
       argsForQ.push(dto.mileage);
       argsForQ.push(sessionId);
       await this.pgService.pg.query(
-        `${finalQString}  fine=true, summ=$${index++}::integer, date_end=$${index++}, mileage=$${index++} WHERE id=$${index++};`,
+        `${finalQString}  fine=true, summ=$${index++}::integer, date_end=$${index++}, mileage=$${index++}, is_active=false WHERE id=$${index++};`,
         argsForQ,
       );
       return strCon.success.closedWithFines;

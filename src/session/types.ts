@@ -24,6 +24,13 @@ type getDiscountRes = {
   discount_percent: number;
 } | null;
 
+type discountType = {
+  id: number;
+  discount_percent: number;
+  min: number;
+  max: number;
+};
+
 type sessionType = {
   id: number;
   summ?: number;
@@ -39,6 +46,7 @@ type sessionType = {
   discount_id: number;
 };
 export {
+  discountType,
   sessionCloseDTO,
   sessionStartDTO,
   getTaxRes,

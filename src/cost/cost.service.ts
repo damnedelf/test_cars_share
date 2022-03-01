@@ -26,10 +26,10 @@ export class CostService {
       return isValid;
     }
     const days = this.calculationService.getDays(dto.date_start, dto.date_end);
-    const tax: getTaxRes = await this.rateService.getRateByKm(
+    const rate: getTaxRes = await this.rateService.getRateByKm(
       dto.mileagePerDay,
     );
-    if (tax) summ = days * tax.cost;
+    if (rate) summ = days * rate.cost;
     const discount: getDiscountRes = await this.discountService.getDiscount(
       days,
     );

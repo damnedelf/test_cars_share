@@ -59,9 +59,9 @@ INSERT INTO discounts(min,max,discount_percent) VALUES
 (15,30,15);
 
 INSERT INTO sessions(is_active,summ,excess_days, excess_km,fine,date_start,date_end,mileage,car_id,rate_id,discount_id) VALUES
- (false,5000,0,0,false,'2022-02-01','2022-02-10',8000,1,2,3),
-(false,1000,0,1000,true, '2022-02-14', '2022-02-28',3000,1,1,2),
-(false,1333,5,0,false, '2022-02-01', '2022-02-15',8000,2,2,3),
-(false,6666,0,0,false, '2022-02-19', '2022-02-24',1000,2,2,3);
+ (false,5000,NULL,7000,true,'2022-02-01','2022-02-10',8000,1,2,NULL),
+(false,3443,NULL,NULL,false,'2022-02-14', '2022-02-28',3000,1,1,3),
+(false,14000,13,NULL,true, '2022-02-01', '2022-02-28',2000,2,2,NULL);
+
 
 
