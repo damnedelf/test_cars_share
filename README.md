@@ -10,9 +10,12 @@ A backend app to cover some aspects of car sharing functionality:
 
 ## Requirements
 
-####To start API:
+#### To start API:
+
 [Docker](https://www.docker.com/)
-####To start tests:
+
+#### To start tests:
+
 [Node v16](https://nodejs.org/en/download/)
 
 
