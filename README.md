@@ -40,7 +40,8 @@ $ docker-compose up
 npm i 
 npm run test
 ````
-##Seed
+## Seed
+
 DB is already seeded with: <br>
 Cars (id:number 1-5), <br>
 Rates (id:number 1-3), <br>
